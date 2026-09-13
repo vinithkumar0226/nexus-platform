@@ -44,37 +44,23 @@ cd nexus-platform
 
 ## Database setup
 
-Copy `.env.example` to `.env`, set `DATABASE_URL`, then run:
+The repository includes a Prisma 7 PostgreSQL schema and a repeatable demo-data seed.
 
 ```bash
+Copy-Item .env.example .env
 npm run prisma:validate
 npm run prisma:migrate -- --name init
+npm run prisma:seed
 npm run prisma:generate
 ```
 
-No database is required to run the current demo. Without `DATABASE_URL`, NEXUS continues using its isolated in-memory repository.
+For a machine without Docker or PostgreSQL installed, Prisma can provide a local development database:
 
-## Current prototype boundary
+```bash
+npx prisma dev -d --name nexus-local
+```
 
-The UI still runs on local mock data and Zustand state for the demo. The PostgreSQL foundation is now prepared: Prisma 7 schema models, generated client, driver adapter, and a lazy server client are included. The read-only API continues to use the in-memory adapter until a real `DATABASE_URL` is configured and the Prisma repository is wired in.
-
-## Roadmap
-
-### Milestone 1: production foundation
-
-- [x] Define PostgreSQL and Prisma persistence models
-- [x] Add typed repository and PostgreSQL client seams
-- [x] Add read-only health and workspace API routes
-- [ ] Connect a PostgreSQL database and run the first migration
-- Add authenticated workspaces and operator roles
-- Define API routes for sources, Content DNA, artefacts, validation, review, and audit
-- Preserve the existing UI contracts while replacing mock state reads and writes
-
-### Milestone 2: source-grounded ingestion
-
-- Support PDF upload and text extraction
-- Store SHA-256 hash, metadata, text spans, and source versions
-- Extract facts and entities with evidence references
+The current UI and workspace API still use the in-memory adapter by design. The database is now migrated and seeded, ready for the Prisma repository adapter to become the next integration step.
 - Add confidence and extraction-quality reporting
 
 ### Milestone 3: assurance services
