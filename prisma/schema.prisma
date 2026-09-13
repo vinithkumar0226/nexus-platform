@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SourceStatus {
+  uploading
+  validating
+  extracting
+  analyzing
+  processed
+  analyzed
+  failed
+}
+
+enum ArtifactStatus {
+  pending
+  generating
+  generated
+  validated
+  reviewed
+  approved
+  exported
+  rejected
+}
+
+enum ValidationIssueStatus {
+  open
+  fixed
+  ignored
+}
+
+model Source {
+  id            String       @id
+  filename      String
+  fileType      String
+  fileSize      Int
+  sha256        String       @unique
+  pageCount     Int
+  wordCount     Int
+  status        SourceStatus
+  securityFlags Json
+  uploadedAt    DateTime
+  processedAt   DateTime?
+  contentDnaId  String?
+
+  contentDna ContentDNA?
+  artifacts  Artifact[]
+  jobs       TransformationJob[]
+
+  @@index([status])
+  @@index([uploadedAt])
+}
+
+model ContentDNA {
+  id                     String   @id
+  sourceId               String   @unique
+  version                String
+  topic                  String
+  domain                 String
+  severity               String
+  communicationObjective String
+  summary                String
+  createdAt              DateTime
+  updatedAt              DateTime
+  previousVersionId      String?
+
+  source          Source           @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  facts           Fact[]
+  entities        Entity[]
+  events          DnaEvent[]
+  claims          Claim[]
+  recommendations Recommendation[]
+  uncertainties   Uncertainty[]
+  artifacts       Artifact[]
+
+  @@index([updatedAt])
+}
+
+model Fact {
+  id            String  @id
+  contentDnaId  String
+  statement     String
+  confidence    Float
+  sourcePage    Int
+  sourceSection String
+  sourceText    String
+  status        String
+  currentValue  String?
+
+  contentDna ContentDNA @relation(fields: [contentDnaId], references: [id], onDelete: Cascade)
+
+  @@index([contentDnaId])
+}
+
+model Entity {
+  id           String @id
+  contentDnaId String
+  name         String
+  type         String
+  mentions     Int
+  sourcePage   Int
+
+  contentDna ContentDNA @relation(fields: [contentDnaId], references: [id], onDelete: Cascade)
+
+  @@index([contentDnaId])
+}
+
+model DnaEvent {
+  id           String @id
+  contentDnaId String
+  date         String
+  event        String
+  significance String
+  sourcePage   Int
+
+  contentDna ContentDNA @relation(fields: [contentDnaId], references: [id], onDelete: Cascade)
+
+  @@index([contentDnaId])
+}
+
+model Claim {
+  id           String @id
+  contentDnaId String
+  statement    String
+  status       String
+  confidence   Float
+  sourcePage   Int
+
+  contentDna ContentDNA @relation(fields: [contentDnaId], references: [id], onDelete: Cascade)
+}
+
+model Recommendation {
+  id           String @id
+  contentDnaId String
+  action       String
+  priority     String
+  sourcePage   Int
+
+  contentDna ContentDNA @relation(fields: [contentDnaId], references: [id], onDelete: Cascade)
+}
+
+model Uncertainty {
+  id           String @id
+  contentDnaId String
+  description  String
+  impact       String
+
+  contentDna ContentDNA @relation(fields: [contentDnaId], references: [id], onDelete: Cascade)
+}
+
+model Artifact {
+  id              String         @id
+  sourceId        String
+  contentDnaId    String
+  dnaVersion      String
+  type            String
+  status          ArtifactStatus
+  title           String
+  generatedAt     DateTime
+  updatedAt       DateTime
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectedBy      String?
+  rejectedAt      DateTime?
+  rejectionReason String?
+  exportedAt      DateTime?
+  exportFormat    String?
+
+  source     Source            @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  contentDna ContentDNA        @relation(fields: [contentDnaId], references: [id], onDelete: Cascade)
+  sections   ArtifactSection[]
+  issues     ValidationIssue[]
+
+  @@index([sourceId])
+  @@index([status])
+}
+
+model ArtifactSection {
+  id           String  @id
+  artifactId   String
+  title        String
+  content      String
+  factIds      Json
+  slideNumber  Int?
+  speakerNotes String?
+
+  artifact Artifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@index([artifactId])
+}
+
+model ValidationIssue {
+  id            String                @id
+  artifactId    String
+  sectionId     String
+  type          String
+  severity      String
+  status        ValidationIssueStatus
+  generatedText String
+  sourceText    String
+  factId        String?
+  sourcePage    Int?
+  sourceFile    String?
+  description   String
+
+  artifact Artifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@index([artifactId, status])
+}
+
+model AuditEvent {
+  id          String   @id
+  timestamp   DateTime
+  actor       String
+  action      String
+  objectType  String
+  objectId    String
+  objectName  String
+  version     String?
+  result      String
+  metadata    Json
+  description String
+
+  @@index([timestamp])
+  @@index([objectType, objectId])
+}
+
+model TransformationJob {
+  id              String    @id
+  sourceId        String
+  contentDnaId    String?
+  selectedOutputs Json
+  steps           Json
+  artifactIds     Json
+  startedAt       DateTime
+  completedAt     DateTime?
+  status          String
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId])
+  @@index([status])
+}

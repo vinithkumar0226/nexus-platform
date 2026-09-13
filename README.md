@@ -42,48 +42,30 @@ Requirements: Node.js 20 or newer and npm.
 git clone https://github.com/vinithkumar0226/nexus-platform.git
 cd nexus-platform
 
-## API boundary
+## Database setup
 
-The first server-side slice is intentionally read-only and credential-free:
+Copy `.env.example` to `.env`, set `DATABASE_URL`, then run:
 
-```text
-GET /api/health     -> service and persistence status
-GET /api/workspace  -> typed workspace snapshot
-````
-
-The route handlers use a server-only `NexusRepository` interface and an isolated in-memory adapter seeded from the demo data. The adapter clones returned objects so API consumers cannot mutate the shared seed state. The next replacement is a Prisma/PostgreSQL adapter behind the same interface.
-| Overview | `/` |
-| Sources | `/sources` |
-| Content DNA | `/content-dna/dna-001` |
-| Transform | `/transform/src-001` |
-| Transformation graph | `/transform/src-001/graph` |
-| Validation | `/validation/src-001` |
-| Review | `/review/art-001` |
-| Audit | `/audit` |
-| Exports | `/exports` |
-
-## Architecture
-
-```text
-src/app/             Next.js App Router screens
-src/components/      Shared shell, navigation, top bar, and UI pieces
-src/data/mockData.ts Demo sources, facts, artefacts, issues, and audit events
-src/store/            Zustand workflow and lifecycle actions
-src/types/            Domain contracts for the future API boundary
-src/lib/              Formatting and UI helpers
+```bash
+npm run prisma:validate
+npm run prisma:migrate -- --name init
+npm run prisma:generate
 ```
 
-The UI intentionally uses the same domain language that a production API will use: sources, facts, entities, Content DNA, artefacts, validation issues, provenance links, review actions, propagation impact, and audit events.
+No database is required to run the current demo. Without `DATABASE_URL`, NEXUS continues using its isolated in-memory repository.
 
 ## Current prototype boundary
 
-The present version uses local mock data and Zustand state. It does not yet provide real PDF/OCR extraction, persistent storage, authentication, external model calls, or generated file exports. Those boundaries are deliberate so the product workflow can be tested and demonstrated first.
+The UI still runs on local mock data and Zustand state for the demo. The PostgreSQL foundation is now prepared: Prisma 7 schema models, generated client, driver adapter, and a lazy server client are included. The read-only API continues to use the in-memory adapter until a real `DATABASE_URL` is configured and the Prisma repository is wired in.
 
 ## Roadmap
 
 ### Milestone 1: production foundation
 
-- Add PostgreSQL and Prisma persistence
+- [x] Define PostgreSQL and Prisma persistence models
+- [x] Add typed repository and PostgreSQL client seams
+- [x] Add read-only health and workspace API routes
+- [ ] Connect a PostgreSQL database and run the first migration
 - Add authenticated workspaces and operator roles
 - Define API routes for sources, Content DNA, artefacts, validation, review, and audit
 - Preserve the existing UI contracts while replacing mock state reads and writes
@@ -114,6 +96,7 @@ The present version uses local mock data and Zustand state. It does not yet prov
 - Next.js 16 App Router
 - React 19 and TypeScript
 - Zustand for prototype workflow state
+- PostgreSQL and Prisma 7 persistence foundation
 - Tailwind CSS utilities and custom NEXUS design tokens
 - Framer Motion for restrained state transitions
 - Lucide icons
@@ -154,3 +137,4 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+````
