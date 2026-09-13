@@ -77,6 +77,7 @@ export interface Source {
   status: SourceStatus;
   securityFlags: SecurityFinding[];
   uploadedAt: string;
+  storageKey?: string;
   processedAt?: string;
   contentDnaId?: string;
 }

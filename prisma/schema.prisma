@@ -45,6 +45,7 @@ model Source {
   status        SourceStatus
   securityFlags Json
   uploadedAt    DateTime
+  storageKey    String?
   processedAt   DateTime?
   contentDnaId  String?
 

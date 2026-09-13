@@ -100,9 +100,10 @@ Recommended routes:
 ```text
 GET /api/health     -> service status and active persistence mode
 GET /api/workspace  -> typed workspace snapshot
+POST /api/sources   -> hash, store, and persist a PDF, DOCX, or TXT source
 ```
 
-The repository selector uses Prisma when `DATABASE_URL` exists and the isolated in-memory adapter otherwise. The next backend step is replacing direct mock-data reads in client state with API hydration and adding authenticated mutation routes.
+The repository selector uses Prisma when `DATABASE_URL` exists and the isolated in-memory adapter otherwise. Source uploads are stored under the ignored local `storage/uploads/` directory, with their storage key, SHA-256, metadata, and audit event persisted in PostgreSQL.
 
 ## Architecture
 

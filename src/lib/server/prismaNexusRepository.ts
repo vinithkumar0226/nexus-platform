@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getPrismaClient } from "./prisma";
+import { Prisma } from "@/generated/prisma/client";
 import type {
   Artifact,
   ArtifactSection,
@@ -29,6 +30,7 @@ function toSource(record: {
   status: string;
   securityFlags: unknown;
   uploadedAt: Date;
+  storageKey: string | null;
   processedAt: Date | null;
   contentDnaId: string | null;
 }): Source {
@@ -43,6 +45,7 @@ function toSource(record: {
     status: record.status as Source["status"],
     securityFlags: record.securityFlags as Source["securityFlags"],
     uploadedAt: record.uploadedAt.toISOString(),
+    storageKey: record.storageKey ?? undefined,
     processedAt: record.processedAt?.toISOString(),
     contentDnaId: record.contentDnaId ?? undefined,
   };
@@ -369,5 +372,45 @@ export const prismaNexusRepository: NexusRepository = {
       include: artifactInclude,
     });
     return artifact ? toArtifact(artifact) : undefined;
+  },
+
+  async createSource(source: Source): Promise<Source> {
+    const record = await getPrismaClient().source.create({
+      data: {
+        id: source.id,
+        filename: source.filename,
+        fileType: source.fileType,
+        fileSize: source.fileSize,
+        sha256: source.sha256,
+        pageCount: source.pageCount,
+        wordCount: source.wordCount,
+        status: source.status,
+        securityFlags: source.securityFlags as unknown as Prisma.InputJsonValue,
+        uploadedAt: new Date(source.uploadedAt),
+        storageKey: source.storageKey ?? null,
+        processedAt: source.processedAt ? new Date(source.processedAt) : null,
+        contentDnaId: source.contentDnaId ?? null,
+      },
+    });
+
+    return toSource(record);
+  },
+
+  async createAuditEvent(event: AuditEvent): Promise<void> {
+    await getPrismaClient().auditEvent.create({
+      data: {
+        id: event.id,
+        timestamp: new Date(event.timestamp),
+        actor: event.actor,
+        action: event.action,
+        objectType: event.objectType,
+        objectId: event.objectId,
+        objectName: event.objectName,
+        version: event.version ?? null,
+        result: event.result,
+        metadata: event.metadata as Prisma.InputJsonValue,
+        description: event.description,
+      },
+    });
   },
 };
