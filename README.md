@@ -101,6 +101,7 @@ Recommended routes:
 GET /api/health     -> service status and active persistence mode
 GET /api/workspace  -> typed workspace snapshot
 POST /api/sources   -> hash, store, and persist a PDF, DOCX, or TXT source
+PATCH /api/artifacts/:id -> persist approve/reject review decisions
 ```
 
 The repository selector uses Prisma when `DATABASE_URL` exists and the isolated in-memory adapter otherwise. Source uploads are stored under the ignored local `storage/uploads/` directory, with their storage key, SHA-256, metadata, and audit event persisted in PostgreSQL.

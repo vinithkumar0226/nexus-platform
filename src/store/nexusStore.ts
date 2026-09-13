@@ -372,6 +372,21 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
       title: "Artefact Approved",
       description: "Ready for export.",
     });
+    void fetch(`/api/artifacts/${artifactId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "approve" }),
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Approval could not be persisted.");
+      })
+      .catch((error: unknown) => {
+        addToast({
+          type: "error",
+          title: "Approval Sync Failed",
+          description: error instanceof Error ? error.message : "Try again.",
+        });
+      });
   },
 
   rejectArtifact: (artifactId, reason) => {
@@ -406,6 +421,21 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
       title: "Artefact Rejected",
       description: reason,
     });
+    void fetch(`/api/artifacts/${artifactId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reject", reason }),
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Rejection could not be persisted.");
+      })
+      .catch((error: unknown) => {
+        addToast({
+          type: "error",
+          title: "Review Sync Failed",
+          description: error instanceof Error ? error.message : "Try again.",
+        });
+      });
   },
 
   exportArtifact: (artifactId, format) => {

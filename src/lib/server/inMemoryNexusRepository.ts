@@ -18,13 +18,14 @@ function clone<T>(value: T): T {
 let sources = clone(mockSources);
 let auditEvents = clone(mockAuditEvents);
 let contentDNA = clone(mockContentDNA);
+let artifacts = clone(mockArtifacts);
 
 export const inMemoryNexusRepository: NexusRepository = {
   async getWorkspaceSnapshot(): Promise<WorkspaceSnapshot> {
     return clone({
       sources,
       contentDNA,
-      artifacts: mockArtifacts,
+      artifacts,
       auditEvents,
       transformationJob: mockTransformationJob,
     });
@@ -36,7 +37,7 @@ export const inMemoryNexusRepository: NexusRepository = {
   },
 
   async getArtifactById(id: string): Promise<Artifact | undefined> {
-    const artifact = mockArtifacts.find((item) => item.id === id);
+    const artifact = artifacts.find((item) => item.id === id);
     return artifact ? clone(artifact) : undefined;
   },
 
@@ -58,6 +59,30 @@ export const inMemoryNexusRepository: NexusRepository = {
     if (!source) throw new Error("Source was not found.");
     source.contentDnaId = contentDnaId;
     return clone(source);
+  },
+
+  async reviewArtifact(
+    artifactId: string,
+    action: "approve" | "reject",
+    reason?: string,
+  ): Promise<Artifact | undefined> {
+    const now = new Date().toISOString();
+    let updated: Artifact | undefined;
+    artifacts = artifacts.map((artifact) => {
+      if (artifact.id !== artifactId) return artifact;
+      updated = {
+        ...artifact,
+        status: action === "approve" ? "approved" : "rejected",
+        approvedBy: action === "approve" ? "Operator" : undefined,
+        approvedAt: action === "approve" ? now : undefined,
+        rejectedBy: action === "reject" ? "Operator" : undefined,
+        rejectedAt: action === "reject" ? now : undefined,
+        rejectionReason: action === "reject" ? reason : undefined,
+        updatedAt: now,
+      };
+      return updated;
+    });
+    return updated ? clone(updated) : undefined;
   },
 
   async createAuditEvent(event: AuditEvent): Promise<void> {

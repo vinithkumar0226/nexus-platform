@@ -10,5 +10,10 @@ export interface NexusRepository {
   createSource(source: Source): Promise<Source>;
   saveContentDNA(contentDNA: ContentDNA): Promise<ContentDNA>;
   linkContentDNA(sourceId: string, contentDnaId: string): Promise<Source>;
+  reviewArtifact(
+    artifactId: string,
+    action: "approve" | "reject",
+    reason?: string,
+  ): Promise<Artifact | undefined>;
   createAuditEvent(event: AuditEvent): Promise<void>;
 }

@@ -472,6 +472,39 @@ export const prismaNexusRepository: NexusRepository = {
     return toSource(source);
   },
 
+  async reviewArtifact(
+    artifactId: string,
+    action: "approve" | "reject",
+    reason?: string,
+  ): Promise<Artifact | undefined> {
+    const now = new Date();
+    const record = await getPrismaClient().artifact.update({
+      where: { id: artifactId },
+      data:
+        action === "approve"
+          ? {
+              status: "approved",
+              approvedBy: "Operator",
+              approvedAt: now,
+              rejectedBy: null,
+              rejectedAt: null,
+              rejectionReason: null,
+              updatedAt: now,
+            }
+          : {
+              status: "rejected",
+              rejectedBy: null,
+              rejectedAt: now,
+              rejectionReason: reason ?? "Rejected by operator.",
+              approvedBy: null,
+              approvedAt: null,
+              updatedAt: now,
+            },
+      include: artifactInclude,
+    });
+    return toArtifact(record);
+  },
+
   async createSource(source: Source): Promise<Source> {
     const record = await getPrismaClient().source.create({
       data: {
