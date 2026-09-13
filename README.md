@@ -38,51 +38,29 @@ The key product idea is **change once, propagate everywhere**. A correction to a
 
 Requirements: Node.js 20 or newer and npm.
 
-```bash
+````bash
 git clone https://github.com/vinithkumar0226/nexus-platform.git
 cd nexus-platform
-npm install
-npm run dev
-```
 
-Open [http://localhost:3000](http://localhost:3000).
+## API boundary
 
-Available commands:
+The first server-side slice is intentionally read-only and credential-free:
 
-```bash
-npm run dev       # Start the development server
-npm run build     # Create a production build
-npm run start     # Serve the production build
-npm run lint      # Run ESLint
-```
+```text
+GET /api/health     -> service and persistence status
+GET /api/workspace  -> typed workspace snapshot
+````
 
-## SIH demo runbook
-
-Use this sequence for a focused 3–5 minute presentation:
-
-1. **Overview**: introduce the problem as one source becoming many communication outputs.
-2. **Sources**: open the cybersecurity incident report and show its processing state.
-3. **Content DNA**: show the shared facts, entities, confidence values, and evidence.
-4. **Transform**: select multiple output formats for different audiences.
-5. **Graph**: explain how the source becomes verified artefacts through the pipeline.
-6. **Validation**: open the detected conflict, then inspect its provenance.
-7. **Review**: correct the fact once and show the affected artefacts.
-8. **Audit**: finish with the immutable event history and integrity summary.
-9. **Exports**: close on the approval and export workflow.
-
-Recommended direct routes:
-
-| View                 | Route                      |
-| -------------------- | -------------------------- |
-| Overview             | `/`                        |
-| Sources              | `/sources`                 |
-| Content DNA          | `/content-dna/dna-001`     |
-| Transform            | `/transform/src-001`       |
+The route handlers use a server-only `NexusRepository` interface and an isolated in-memory adapter seeded from the demo data. The adapter clones returned objects so API consumers cannot mutate the shared seed state. The next replacement is a Prisma/PostgreSQL adapter behind the same interface.
+| Overview | `/` |
+| Sources | `/sources` |
+| Content DNA | `/content-dna/dna-001` |
+| Transform | `/transform/src-001` |
 | Transformation graph | `/transform/src-001/graph` |
-| Validation           | `/validation/src-001`      |
-| Review               | `/review/art-001`          |
-| Audit                | `/audit`                   |
-| Exports              | `/exports`                 |
+| Validation | `/validation/src-001` |
+| Review | `/review/art-001` |
+| Audit | `/audit` |
+| Exports | `/exports` |
 
 ## Architecture
 
