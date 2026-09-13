@@ -1,9 +1,7 @@
 "use client";
 
-import React from "react";
-import { motion } from "framer-motion";
-import { useNexusStore } from "@/store/nexusStore";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   FileText,
   Network,
@@ -14,31 +12,27 @@ import {
   Presentation,
   ArrowLeft,
   BrainCircuit,
+  type LucideIcon,
 } from "lucide-react";
 
-export default function TransformationGraphPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const demoSteps = [
-    "Upload source report",
-    "Extract facts and entities",
-    "Create Content DNA v1.0",
-    "Generate 3 artefacts",
-    "Detect conflict and validate",
-    "Update once and re-propagate",
-    "Approve and export",
-  ];
+type NodeCardProps = {
+  icon: LucideIcon;
+  title: string;
+  status: "completed" | "validated" | "needs_review" | "active";
+  version?: string;
+  onClick?: () => void;
+  className: string;
+};
 
-  const NodeCard = ({
-    icon: Icon,
-    title,
-    status,
-    version,
-    onClick,
-    className,
-  }: any) => (
+function NodeCard({
+  icon: Icon,
+  title,
+  status,
+  version,
+  onClick,
+  className,
+}: NodeCardProps) {
+  return (
     <div
       onClick={onClick}
       className={`absolute w-56 bg-gradient-to-b from-[#121d32] to-[#0d1424] border border-nexus-border/80 rounded-2xl p-4 shadow-[0_18px_36px_rgba(0,0,0,0.35)] z-10 cursor-pointer hover:border-nexus-cyan/50 transition-all duration-200 ${className}`}
@@ -83,6 +77,22 @@ export default function TransformationGraphPage({
       </div>
     </div>
   );
+}
+
+export default function TransformationGraphPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const demoSteps = [
+    "Upload source report",
+    "Extract facts and entities",
+    "Create Content DNA v1.0",
+    "Generate 3 artefacts",
+    "Detect conflict and validate",
+    "Update once and re-propagate",
+    "Approve and export",
+  ];
 
   return (
     <div className="min-h-screen bg-nexus-bg relative overflow-hidden flex flex-col">
