@@ -2,15 +2,28 @@
 // NEXUS — Global State Store (Zustand)
 // ============================================================
 
-import { create } from 'zustand';
+import { create } from "zustand";
 import type {
-  Source, ContentDNA, Artifact, AuditEvent, ValidationIssue,
-  ProvenanceLink, TransformationJob, Fact, PropagationImpact,
-} from '@/types';
+  Source,
+  ContentDNA,
+  Artifact,
+  AuditEvent,
+  ValidationIssue,
+  ProvenanceLink,
+  TransformationJob,
+  Fact,
+  PropagationImpact,
+} from "@/types";
 import {
-  mockSources, mockContentDNA, mockArtifacts, mockAuditEvents,
-  mockValidationSummary, mockProvenanceLinks, mockTransformationJob,
-} from '@/data/mockData';
+  mockSources,
+  mockContentDNA,
+  mockArtifacts,
+  mockAuditEvents,
+  mockValidationSummary,
+  mockProvenanceLinks,
+  mockTransformationJob,
+} from "@/data/mockData";
+import type { ApiSuccess, WorkspaceSnapshot } from "@/types/api";
 
 // ============================================================
 // State Shape
@@ -42,20 +55,34 @@ interface NexusState {
 
   // Change propagation
   propagationImpact: PropagationImpact | null;
-  propagationStatus: 'idle' | 'analyzing' | 'ready' | 'propagating' | 'complete';
+  propagationStatus:
+    | "idle"
+    | "analyzing"
+    | "ready"
+    | "propagating"
+    | "complete";
 
   // Upload flow
   uploadProgress: number;
-  uploadStage: 'idle' | 'uploading' | 'validating' | 'extracting' | 'analyzing' | 'done';
+  uploadStage:
+    | "idle"
+    | "uploading"
+    | "validating"
+    | "extracting"
+    | "analyzing"
+    | "done";
 
   // UI state
   sidebarCollapsed: boolean;
   toastMessages: ToastMessage[];
+  workspaceHydrated: boolean;
+  workspaceLoading: boolean;
+  workspaceError: string | null;
 }
 
 export interface ToastMessage {
   id: string;
-  type: 'success' | 'warning' | 'error' | 'info';
+  type: "success" | "warning" | "error" | "info";
   title: string;
   description?: string;
 }
@@ -68,7 +95,7 @@ interface NexusActions {
   // Source actions
   selectSource: (id: string) => void;
   addSource: (source: Source) => void;
-  setUploadStage: (stage: NexusState['uploadStage'], progress?: number) => void;
+  setUploadStage: (stage: NexusState["uploadStage"], progress?: number) => void;
 
   // Content DNA actions
   updateFact: (factId: string, newValue: string) => void;
@@ -77,12 +104,20 @@ interface NexusActions {
 
   // Artifact actions
   setActiveArtifact: (id: string) => void;
-  updateArtifactStatus: (id: string, status: Artifact['status']) => void;
-  updateArtifactSection: (artifactId: string, sectionId: string, content: string) => void;
+  updateArtifactStatus: (id: string, status: Artifact["status"]) => void;
+  updateArtifactSection: (
+    artifactId: string,
+    sectionId: string,
+    content: string,
+  ) => void;
   approveArtifact: (artifactId: string) => void;
   rejectArtifact: (artifactId: string, reason: string) => void;
   exportArtifact: (artifactId: string, format: string) => void;
-  resolveValidationIssue: (artifactId: string, issueId: string, action: 'fix' | 'ignore') => void;
+  resolveValidationIssue: (
+    artifactId: string,
+    issueId: string,
+    action: "fix" | "ignore",
+  ) => void;
 
   // Provenance panel
   openProvenance: (link: ProvenanceLink) => void;
@@ -92,11 +127,12 @@ interface NexusActions {
   startTransformation: (sourceId: string, outputs: string[]) => void;
 
   // Audit
-  addAuditEvent: (event: Omit<AuditEvent, 'id'>) => void;
+  addAuditEvent: (event: Omit<AuditEvent, "id">) => void;
 
   // UI
+  hydrateWorkspace: () => Promise<void>;
   toggleSidebar: () => void;
-  addToast: (toast: Omit<ToastMessage, 'id'>) => void;
+  addToast: (toast: Omit<ToastMessage, "id">) => void;
   removeToast: (id: string) => void;
 }
 
@@ -108,20 +144,23 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
   // ─── Initial State ───────────────────────────────────────
 
   sources: mockSources,
-  selectedSourceId: 'src-001',
+  selectedSourceId: "src-001",
   contentDNA: mockContentDNA,
   artifacts: mockArtifacts,
-  activeArtifactId: 'art-001',
+  activeArtifactId: "art-001",
   provenanceOpen: false,
   activeProvenanceLink: null,
   transformationJob: mockTransformationJob,
   auditEvents: mockAuditEvents,
   propagationImpact: null,
-  propagationStatus: 'idle',
+  propagationStatus: "idle",
   uploadProgress: 0,
-  uploadStage: 'idle',
+  uploadStage: "idle",
   sidebarCollapsed: false,
   toastMessages: [],
+  workspaceHydrated: false,
+  workspaceLoading: false,
+  workspaceError: null,
 
   // ─── Source Actions ───────────────────────────────────────
 
@@ -140,7 +179,7 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
       contentDNA: {
         ...state.contentDNA,
         facts: state.contentDNA.facts.map((f) =>
-          f.id === factId ? { ...f, currentValue: newValue } : f
+          f.id === factId ? { ...f, currentValue: newValue } : f,
         ),
       },
     })),
@@ -154,9 +193,7 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
 
     // Find artifacts that reference this fact
     const affected = artifacts
-      .filter((art) =>
-        art.sections.some((sec) => sec.factIds.includes(factId))
-      )
+      .filter((art) => art.sections.some((sec) => sec.factIds.includes(factId)))
       .map((art) => ({
         artifactId: art.id,
         artifactType: art.type,
@@ -164,7 +201,7 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
         sectionIds: art.sections
           .filter((sec) => sec.factIds.includes(factId))
           .map((sec) => sec.id),
-        status: 'pending' as const,
+        status: "pending" as const,
       }));
 
     const impact: PropagationImpact = {
@@ -179,27 +216,27 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
     set((state) => ({
       contentDNA: {
         ...state.contentDNA,
-        version: '2.0',
+        version: "2.0",
         updatedAt: new Date().toISOString(),
         facts: state.contentDNA.facts.map((f) =>
-          f.id === factId ? { ...f, currentValue: newValue } : f
+          f.id === factId ? { ...f, currentValue: newValue } : f,
         ),
       },
       propagationImpact: impact,
-      propagationStatus: 'ready',
+      propagationStatus: "ready",
     }));
 
     addAuditEvent({
       timestamp: new Date().toISOString(),
-      actor: 'Operator',
-      action: 'fact_corrected',
-      objectType: 'fact',
+      actor: "Operator",
+      action: "fact_corrected",
+      objectType: "fact",
       objectId: factId,
       objectName: `Fact ${factId}`,
-      version: '2.0',
-      result: 'success',
+      version: "2.0",
+      result: "success",
       description: `Fact ${factId} updated: ${previousValue} → ${newValue}`,
-      metadata: { previousValue, newValue, dnaVersionBumped: '2.0' },
+      metadata: { previousValue, newValue, dnaVersionBumped: "2.0" },
     });
   },
 
@@ -207,21 +244,21 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
     const { propagationImpact, addAuditEvent, addToast } = get();
     if (!propagationImpact) return;
 
-    set({ propagationStatus: 'propagating' });
+    set({ propagationStatus: "propagating" });
 
     // Simulate propagation — update artifact sections
     setTimeout(() => {
       set((state) => ({
         artifacts: state.artifacts.map((art) => {
           const affectedInfo = propagationImpact.affectedArtifacts.find(
-            (a) => a.artifactId === art.id
+            (a) => a.artifactId === art.id,
           );
           if (!affectedInfo) return art;
 
           return {
             ...art,
-            dnaVersion: '2.0',
-            status: 'generated' as const,
+            dnaVersion: "2.0",
+            status: "generated" as const,
             updatedAt: new Date().toISOString(),
             sections: art.sections.map((sec) => {
               if (!affectedInfo.sectionIds.includes(sec.id)) return sec;
@@ -229,13 +266,16 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
               return {
                 ...sec,
                 content: sec.content
-                  .replace(new RegExp(propagationImpact.previousValue, 'g'), propagationImpact.newValue)
-                  .replace('180 servers', '20 servers'), // fix the deliberate conflict too
+                  .replace(
+                    new RegExp(propagationImpact.previousValue, "g"),
+                    propagationImpact.newValue,
+                  )
+                  .replace("180 servers", "20 servers"), // fix the deliberate conflict too
               };
             }),
             // Clear old validation issues related to this fact
             validationIssues: art.validationIssues.filter(
-              (vi) => vi.factId !== propagationImpact.factId
+              (vi) => vi.factId !== propagationImpact.factId,
             ),
           };
         }),
@@ -243,28 +283,30 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
           ...propagationImpact,
           affectedArtifacts: propagationImpact.affectedArtifacts.map((a) => ({
             ...a,
-            status: 'updated' as const,
+            status: "updated" as const,
           })),
         },
-        propagationStatus: 'complete',
+        propagationStatus: "complete",
       }));
 
       addAuditEvent({
         timestamp: new Date().toISOString(),
-        actor: 'System',
-        action: 'propagation_triggered',
-        objectType: 'content_dna',
-        objectId: 'dna-001',
-        objectName: 'Content DNA v2.0',
-        version: '2.0',
-        result: 'success',
+        actor: "System",
+        action: "propagation_triggered",
+        objectType: "content_dna",
+        objectId: "dna-001",
+        objectName: "Content DNA v2.0",
+        version: "2.0",
+        result: "success",
         description: `Change propagated to ${propagationImpact.affectedArtifacts.length} artifacts`,
-        metadata: { artifactsUpdated: propagationImpact.affectedArtifacts.length },
+        metadata: {
+          artifactsUpdated: propagationImpact.affectedArtifacts.length,
+        },
       });
 
       addToast({
-        type: 'success',
-        title: 'Propagation Complete',
+        type: "success",
+        title: "Propagation Complete",
         description: `${propagationImpact.affectedArtifacts.length} artefacts updated and revalidated.`,
       });
     }, 1500);
@@ -277,7 +319,7 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
   updateArtifactStatus: (id, status) =>
     set((state) => ({
       artifacts: state.artifacts.map((a) =>
-        a.id === id ? { ...a, status, updatedAt: new Date().toISOString() } : a
+        a.id === id ? { ...a, status, updatedAt: new Date().toISOString() } : a,
       ),
     })),
 
@@ -288,11 +330,11 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
           ? {
               ...art,
               sections: art.sections.map((sec) =>
-                sec.id === sectionId ? { ...sec, content } : sec
+                sec.id === sectionId ? { ...sec, content } : sec,
               ),
               updatedAt: new Date().toISOString(),
             }
-          : art
+          : art,
       ),
     })),
 
@@ -303,26 +345,30 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
         a.id === artifactId
           ? {
               ...a,
-              status: 'approved' as const,
-              approvedBy: 'Operator',
+              status: "approved" as const,
+              approvedBy: "Operator",
               approvedAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             }
-          : a
+          : a,
       ),
     }));
     addAuditEvent({
       timestamp: new Date().toISOString(),
-      actor: 'Operator',
-      action: 'artifact_approved',
-      objectType: 'artifact',
+      actor: "Operator",
+      action: "artifact_approved",
+      objectType: "artifact",
       objectId: artifactId,
-      objectName: 'Artifact',
-      result: 'success',
-      description: 'Artifact approved by operator',
+      objectName: "Artifact",
+      result: "success",
+      description: "Artifact approved by operator",
       metadata: {},
     });
-    addToast({ type: 'success', title: 'Artefact Approved', description: 'Ready for export.' });
+    addToast({
+      type: "success",
+      title: "Artefact Approved",
+      description: "Ready for export.",
+    });
   },
 
   rejectArtifact: (artifactId, reason) => {
@@ -332,27 +378,31 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
         a.id === artifactId
           ? {
               ...a,
-              status: 'rejected' as const,
-              rejectedBy: 'Operator',
+              status: "rejected" as const,
+              rejectedBy: "Operator",
               rejectedAt: new Date().toISOString(),
               rejectionReason: reason,
               updatedAt: new Date().toISOString(),
             }
-          : a
+          : a,
       ),
     }));
     addAuditEvent({
       timestamp: new Date().toISOString(),
-      actor: 'Operator',
-      action: 'artifact_rejected',
-      objectType: 'artifact',
+      actor: "Operator",
+      action: "artifact_rejected",
+      objectType: "artifact",
       objectId: artifactId,
-      objectName: 'Artifact',
-      result: 'warning',
+      objectName: "Artifact",
+      result: "warning",
       description: `Artifact rejected: ${reason}`,
       metadata: { reason },
     });
-    addToast({ type: 'warning', title: 'Artefact Rejected', description: reason });
+    addToast({
+      type: "warning",
+      title: "Artefact Rejected",
+      description: reason,
+    });
   },
 
   exportArtifact: (artifactId, format) => {
@@ -362,26 +412,30 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
         a.id === artifactId
           ? {
               ...a,
-              status: 'exported' as const,
+              status: "exported" as const,
               exportedAt: new Date().toISOString(),
               exportFormat: format,
               updatedAt: new Date().toISOString(),
             }
-          : a
+          : a,
       ),
     }));
     addAuditEvent({
       timestamp: new Date().toISOString(),
-      actor: 'Operator',
-      action: 'artifact_exported',
-      objectType: 'export',
+      actor: "Operator",
+      action: "artifact_exported",
+      objectType: "export",
       objectId: artifactId,
       objectName: `Artifact — ${format.toUpperCase()}`,
-      result: 'success',
+      result: "success",
       description: `Artifact exported as ${format.toUpperCase()}`,
       metadata: { format },
     });
-    addToast({ type: 'success', title: 'Export Ready', description: `${format.toUpperCase()} file is ready for download.` });
+    addToast({
+      type: "success",
+      title: "Export Ready",
+      description: `${format.toUpperCase()} file is ready for download.`,
+    });
   },
 
   resolveValidationIssue: (artifactId, issueId, action) =>
@@ -391,17 +445,21 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
           ? {
               ...art,
               validationIssues: art.validationIssues.map((vi) =>
-                vi.id === issueId ? { ...vi, status: action === 'fix' ? 'fixed' : 'ignored' } : vi
+                vi.id === issueId
+                  ? { ...vi, status: action === "fix" ? "fixed" : "ignored" }
+                  : vi,
               ),
             }
-          : art
+          : art,
       ),
     })),
 
   // ─── Provenance ───────────────────────────────────────────
 
-  openProvenance: (link) => set({ provenanceOpen: true, activeProvenanceLink: link }),
-  closeProvenance: () => set({ provenanceOpen: false, activeProvenanceLink: null }),
+  openProvenance: (link) =>
+    set({ provenanceOpen: true, activeProvenanceLink: link }),
+  closeProvenance: () =>
+    set({ provenanceOpen: false, activeProvenanceLink: null }),
 
   // ─── Transformation ───────────────────────────────────────
 
@@ -420,6 +478,56 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
     })),
 
   // ─── UI ───────────────────────────────────────────────────
+
+  hydrateWorkspace: async () => {
+    if (get().workspaceHydrated || get().workspaceLoading) return;
+
+    set({ workspaceLoading: true, workspaceError: null });
+
+    try {
+      const response = await fetch("/api/workspace", {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Workspace request failed with status ${response.status}.`,
+        );
+      }
+
+      const payload = (await response.json()) as ApiSuccess<WorkspaceSnapshot>;
+      const workspace = payload.data;
+
+      set({
+        sources: workspace.sources,
+        selectedSourceId: workspace.sources.some(
+          (source) => source.id === get().selectedSourceId,
+        )
+          ? get().selectedSourceId
+          : (workspace.sources[0]?.id ?? null),
+        contentDNA: workspace.contentDNA,
+        artifacts: workspace.artifacts,
+        activeArtifactId: workspace.artifacts.some(
+          (artifact) => artifact.id === get().activeArtifactId,
+        )
+          ? get().activeArtifactId
+          : (workspace.artifacts[0]?.id ?? null),
+        auditEvents: workspace.auditEvents,
+        transformationJob: workspace.transformationJob,
+        workspaceHydrated: true,
+        workspaceLoading: false,
+      });
+    } catch (error) {
+      set({
+        workspaceLoading: false,
+        workspaceError:
+          error instanceof Error
+            ? error.message
+            : "Unable to load workspace data.",
+      });
+    }
+  },
 
   toggleSidebar: () =>
     set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),

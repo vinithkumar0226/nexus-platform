@@ -4,6 +4,7 @@ import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import ToastContainer from "@/components/ToastContainer";
+import WorkspaceHydrator from "@/components/WorkspaceHydrator";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -45,6 +46,7 @@ export default function RootLayout({
           fontFamily: "Inter, system-ui, sans-serif",
         }}
       >
+        <WorkspaceHydrator />
         {/* App Shell */}
         <div className="flex h-screen overflow-hidden">
           {/* Sidebar */}
