@@ -22,7 +22,7 @@ export interface ApiError {
 export interface HealthResponse {
   service: "nexus-api";
   status: "ok" | "degraded";
-  persistence: "in-memory";
+  persistence: "in-memory" | "postgresql";
   timestamp: string;
 }
 

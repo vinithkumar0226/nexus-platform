@@ -2,125 +2,130 @@
 
 ## Source-grounded AI content transformation and assurance
 
-NEXUS turns one source document into a coordinated set of communication artefacts while keeping the facts, evidence, validation state, human approval, and audit history connected.
+NEXUS turns one source document into coordinated communication artefacts while keeping facts, evidence, validation state, human approval, and audit history connected.
 
-The current repository is a polished, mock-driven product prototype for the SIH 2026 demonstration. It is designed to make the end-to-end operating model visible before the production ingestion and persistence services are connected.
+The current repository is a polished SIH 2026 product prototype with a real local PostgreSQL foundation. The UI remains demo-friendly, while the server boundary can now read the seeded workspace from Prisma.
 
 ## Product story
 
 ```text
 One source
-	-> secure ingestion
-	-> Content DNA (shared fact base)
-	-> audience-specific artefacts
-	-> factual validation and provenance
-	-> human review
-	-> approved export
+    -> secure ingestion
+    -> Content DNA (shared fact base)
+    -> audience-specific artefacts
+    -> factual validation and provenance
+    -> human review
+    -> approved export
 ```
 
-The key product idea is **change once, propagate everywhere**. A correction to a source-grounded fact can be analyzed for impact and propagated across every affected artefact before approval and export.
+The core idea is **change once, propagate everywhere**: a correction to a source-grounded fact can be analyzed and propagated across every affected artefact before approval and export.
 
 ## Current capabilities
 
-- Dark enterprise workspace with responsive navigation and operator controls
+- Responsive enterprise workspace with operator navigation
 - Source management and simulated secure ingestion
-- Content DNA view with facts, entities, confidence, and evidence
-- Multi-output transformation flow
-- Transformation graph for explaining the lifecycle to reviewers
-- Validation center with conflicts and provenance links
-- Human review with approve and reject actions
-- Change-impact analysis and propagation simulation
-- Export dashboard and artifact history
-- Cryptographic-style audit trail with actor, result, metadata, and object history
-- Zustand state layer that mirrors the future backend contracts
+- Content DNA with facts, entities, confidence, and evidence
+- Multi-output transformation flow and transformation graph
+- Validation center with conflict detection and provenance
+- Human review, approval, rejection, propagation, and export flows
+- Audit trail with actors, results, metadata, and object history
+- Typed API contracts and read-only health/workspace endpoints
+- PostgreSQL schema, migration, Prisma client, and repeatable demo seed
 
 ## Run locally
 
 Requirements: Node.js 20 or newer and npm.
 
-````bash
+```powershell
 git clone https://github.com/vinithkumar0226/nexus-platform.git
 cd nexus-platform
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+Useful commands:
+
+```powershell
+npm run dev
+npm run build
+npm run lint
+npm run prisma:validate
+npm run prisma:seed
+```
 
 ## Database setup
 
-The repository includes a Prisma 7 PostgreSQL schema and a repeatable demo-data seed.
+The repository uses Prisma 7 with PostgreSQL. For a machine without Docker or PostgreSQL installed, Prisma can provide a local development database:
 
-```bash
+```powershell
+npx prisma dev -d --name nexus-local
 Copy-Item .env.example .env
-npm run prisma:validate
 npm run prisma:migrate -- --name init
 npm run prisma:seed
 npm run prisma:generate
 ```
 
-For a machine without Docker or PostgreSQL installed, Prisma can provide a local development database:
+When `DATABASE_URL` is configured, `GET /api/workspace` reads from PostgreSQL. Without it, the API safely falls back to the in-memory demo repository.
 
-```bash
-npx prisma dev -d --name nexus-local
+## SIH demo runbook
+
+1. Open the Overview dashboard.
+2. Show the processed cybersecurity report in Sources.
+3. Open Content DNA and explain shared facts and evidence.
+4. Select multiple output formats in Transform.
+5. Use the graph to explain source-to-artefact lineage.
+6. Open Validation and inspect the 18-versus-180 conflict.
+7. Open provenance, correct the fact, and show propagation impact.
+8. Approve the reviewed artefacts.
+9. Finish on Audit and Exports.
+
+Recommended routes:
+
+| View                 | Route                      |
+| -------------------- | -------------------------- |
+| Overview             | `/`                        |
+| Sources              | `/sources`                 |
+| Content DNA          | `/content-dna/dna-001`     |
+| Transform            | `/transform/src-001`       |
+| Transformation graph | `/transform/src-001/graph` |
+| Validation           | `/validation/src-001`      |
+| Review               | `/review/art-001`          |
+| Audit                | `/audit`                   |
+| Exports              | `/exports`                 |
+
+## API
+
+```text
+GET /api/health     -> service status and active persistence mode
+GET /api/workspace  -> typed workspace snapshot
 ```
 
-The current UI and workspace API still use the in-memory adapter by design. The database is now migrated and seeded, ready for the Prisma repository adapter to become the next integration step.
-- Add confidence and extraction-quality reporting
+The repository selector uses Prisma when `DATABASE_URL` exists and the isolated in-memory adapter otherwise. The next backend step is replacing direct mock-data reads in client state with API hydration and adding authenticated mutation routes.
 
-### Milestone 3: assurance services
+## Architecture
 
-- Generate artefacts through a model gateway
-- Require evidence references for important claims
-- Detect unsupported claims and conflicting facts
-- Persist propagation previews and approval decisions
-
-### Milestone 4: release readiness
-
-- Add unit, integration, and Playwright workflow tests
-- Deploy the frontend and backend
-- Add observability, access logs, and retention controls
-- Run a complete judge rehearsal using a fixed demo dataset
+```text
+src/app/             Next.js App Router screens and API routes
+src/components/      Shared shell and UI components
+src/data/mockData.ts Demo seed data
+src/store/            Zustand UI workflow state
+src/lib/server/       Repository interfaces and persistence adapters
+src/types/            Domain and API contracts
+prisma/schema.prisma  PostgreSQL data model
+prisma/seed.ts        Repeatable demo-data seed
+```
 
 ## Technology
 
 - Next.js 16 App Router
 - React 19 and TypeScript
-- Zustand for prototype workflow state
-- PostgreSQL and Prisma 7 persistence foundation
+- Zustand and Framer Motion
+- PostgreSQL and Prisma 7
 - Tailwind CSS utilities and custom NEXUS design tokens
-- Framer Motion for restrained state transitions
 - Lucide icons
 
 ## Repository
 
 [github.com/vinithkumar0226/nexus-platform](https://github.com/vinithkumar0226/nexus-platform)
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-````

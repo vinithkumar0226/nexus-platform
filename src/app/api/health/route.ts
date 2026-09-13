@@ -4,7 +4,7 @@ export async function GET(): Promise<Response> {
   const response: HealthResponse = {
     service: "nexus-api",
     status: "ok",
-    persistence: "in-memory",
+    persistence: process.env.DATABASE_URL ? "postgresql" : "in-memory",
     timestamp: new Date().toISOString(),
   };
 
