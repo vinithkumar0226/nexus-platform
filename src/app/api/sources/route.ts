@@ -4,6 +4,7 @@ import path from "node:path";
 import type { AuditEvent, ContentDNA, FileType, Source } from "@/types";
 import type { ApiError, ApiSuccess, SourceUploadResult } from "@/types/api";
 import { getNexusRepository } from "@/lib/server/repository";
+import { extractSourceText } from "@/lib/server/extractSourceText";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 const ALLOWED_EXTENSIONS: FileType[] = ["pdf", "docx", "txt"];
@@ -21,17 +22,6 @@ function getExtension(filename: string): FileType | null {
   return extension && ALLOWED_EXTENSIONS.includes(extension as FileType)
     ? (extension as FileType)
     : null;
-}
-
-function countWords(buffer: Buffer, fileType: FileType): number {
-  if (fileType !== "txt") return 0;
-  const text = buffer.toString("utf8").trim();
-  return text ? text.split(/\s+/).length : 0;
-}
-
-function countPdfPages(buffer: Buffer, fileType: FileType): number {
-  if (fileType !== "pdf") return 0;
-  return (buffer.toString("latin1").match(/\/Type\s*\/Page\b/g) ?? []).length;
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -67,6 +57,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    const extracted = await extractSourceText(buffer, fileType);
     const id = `src-${crypto.randomUUID().slice(0, 8)}`;
     const storageKey = `storage/uploads/${id}.${fileType}`;
     storagePath = path.join(process.cwd(), storageKey);
@@ -81,8 +72,8 @@ export async function POST(request: Request): Promise<Response> {
       fileType,
       fileSize: file.size,
       sha256: createHash("sha256").update(buffer).digest("hex"),
-      pageCount: countPdfPages(buffer, fileType),
-      wordCount: countWords(buffer, fileType),
+      pageCount: extracted.pageCount,
+      wordCount: extracted.wordCount,
       status: "processed",
       securityFlags: [],
       uploadedAt,
@@ -92,10 +83,7 @@ export async function POST(request: Request): Promise<Response> {
 
     const repository = getNexusRepository();
     const createdSource = await repository.createSource(source);
-    const sourceText =
-      fileType === "txt"
-        ? buffer.toString("utf8").trim()
-        : `Binary ${fileType.toUpperCase()} source stored for document extraction.`;
+    const sourceText = extracted.text;
     const contentDnaId = `dna-${createdSource.id}`;
     const contentDNA: ContentDNA = {
       id: contentDnaId,
@@ -114,27 +102,26 @@ export async function POST(request: Request): Promise<Response> {
           statement:
             sourceText.slice(0, 280) ||
             `Source uploaded: ${createdSource.filename}`,
-          confidence: fileType === "txt" && sourceText ? 0.82 : 0.45,
+          confidence: sourceText ? 0.82 : 0.45,
           sourcePage: 1,
           sourceSection: "Uploaded source",
           sourceText: sourceText.slice(0, 1000),
-          status: fileType === "txt" && sourceText ? "verified" : "uncertain",
+          status: sourceText ? "verified" : "uncertain",
         },
       ],
       entities: [],
       events: [],
       claims: [],
       recommendations: [],
-      uncertainties:
-        fileType === "txt"
-          ? []
-          : [
-              {
-                id: `uncertainty-${createdSource.id}`,
-                description: `Text extraction for ${fileType.toUpperCase()} is pending parser integration.`,
-                impact: "medium",
-              },
-            ],
+      uncertainties: sourceText
+        ? []
+        : [
+            {
+              id: `uncertainty-${createdSource.id}`,
+              description: `Text extraction for ${fileType.toUpperCase()} is pending parser integration.`,
+              impact: "medium",
+            },
+          ],
       createdAt: uploadedAt,
       updatedAt: uploadedAt,
     };
