@@ -15,11 +15,17 @@ import {
   Loader2,
 } from "lucide-react";
 import { useNexusStore } from "@/store/nexusStore";
+import type { ApiSuccess, SourceUploadResult } from "@/types/api";
 
 export default function SourceUpload() {
   const router = useRouter();
-  const { uploadStage, uploadProgress, setUploadStage, addSource } =
-    useNexusStore();
+  const {
+    uploadStage,
+    uploadProgress,
+    setUploadStage,
+    addSource,
+    setContentDNA,
+  } = useNexusStore();
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,16 +76,20 @@ export default function SourceUpload() {
         body: formData,
       });
 
-      const payload = await response.json();
+      const payload =
+        (await response.json()) as ApiSuccess<SourceUploadResult> & {
+          error?: { message: string };
+        };
       if (!response.ok) {
         throw new Error(payload.error?.message || "The source upload failed.");
       }
 
       setUploadStage("extracting", 50);
       setUploadStage("analyzing", 80);
-      addSource(payload.data);
+      addSource(payload.data.source);
+      setContentDNA(payload.data.contentDNA);
       setUploadStage("done", 100);
-      router.push(`/sources/${payload.data.id}`);
+      router.push(`/sources/${payload.data.source.id}`);
     } catch (uploadError) {
       setUploadStage("idle", 0);
       setError(

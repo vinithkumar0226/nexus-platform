@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Artifact, AuditEvent, Source } from "@/types";
+import type { Artifact, AuditEvent, ContentDNA, Source } from "@/types";
 import type { WorkspaceSnapshot } from "@/types/api";
 
 export interface NexusRepository {
@@ -8,5 +8,7 @@ export interface NexusRepository {
   getSourceById(id: string): Promise<Source | undefined>;
   getArtifactById(id: string): Promise<Artifact | undefined>;
   createSource(source: Source): Promise<Source>;
+  saveContentDNA(contentDNA: ContentDNA): Promise<ContentDNA>;
+  linkContentDNA(sourceId: string, contentDnaId: string): Promise<Source>;
   createAuditEvent(event: AuditEvent): Promise<void>;
 }

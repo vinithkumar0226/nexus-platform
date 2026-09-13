@@ -98,6 +98,7 @@ interface NexusActions {
   setUploadStage: (stage: NexusState["uploadStage"], progress?: number) => void;
 
   // Content DNA actions
+  setContentDNA: (contentDNA: ContentDNA) => void;
   updateFact: (factId: string, newValue: string) => void;
   analyzeFactImpact: (factId: string, newValue: string) => void;
   propagateChanges: () => void;
@@ -173,6 +174,8 @@ export const useNexusStore = create<NexusState & NexusActions>((set, get) => ({
     set({ uploadStage: stage, uploadProgress: progress }),
 
   // ─── Content DNA Actions ──────────────────────────────────
+
+  setContentDNA: (contentDNA) => set({ contentDNA }),
 
   updateFact: (factId, newValue) =>
     set((state) => ({

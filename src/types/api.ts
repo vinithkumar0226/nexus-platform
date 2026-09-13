@@ -33,3 +33,8 @@ export interface WorkspaceSnapshot {
   auditEvents: AuditEvent[];
   transformationJob: TransformationJob | null;
 }
+
+export interface SourceUploadResult {
+  source: Source;
+  contentDNA: ContentDNA;
+}

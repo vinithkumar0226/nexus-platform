@@ -374,6 +374,104 @@ export const prismaNexusRepository: NexusRepository = {
     return artifact ? toArtifact(artifact) : undefined;
   },
 
+  async saveContentDNA(contentDNA: ContentDNA): Promise<ContentDNA> {
+    const prisma = getPrismaClient();
+    await prisma.contentDNA.upsert({
+      where: { id: contentDNA.id },
+      update: {
+        sourceId: contentDNA.sourceId,
+        version: contentDNA.version,
+        topic: contentDNA.topic,
+        domain: contentDNA.domain,
+        severity: contentDNA.severity,
+        communicationObjective: contentDNA.communicationObjective,
+        summary: contentDNA.summary,
+        updatedAt: new Date(contentDNA.updatedAt),
+      },
+      create: {
+        id: contentDNA.id,
+        sourceId: contentDNA.sourceId,
+        version: contentDNA.version,
+        topic: contentDNA.topic,
+        domain: contentDNA.domain,
+        severity: contentDNA.severity,
+        communicationObjective: contentDNA.communicationObjective,
+        summary: contentDNA.summary,
+        createdAt: new Date(contentDNA.createdAt),
+        updatedAt: new Date(contentDNA.updatedAt),
+        previousVersionId: contentDNA.previousVersionId ?? null,
+      },
+    });
+
+    await prisma.fact.deleteMany({ where: { contentDnaId: contentDNA.id } });
+    await prisma.entity.deleteMany({ where: { contentDnaId: contentDNA.id } });
+    await prisma.dnaEvent.deleteMany({
+      where: { contentDnaId: contentDNA.id },
+    });
+    await prisma.claim.deleteMany({ where: { contentDnaId: contentDNA.id } });
+    await prisma.recommendation.deleteMany({
+      where: { contentDnaId: contentDNA.id },
+    });
+    await prisma.uncertainty.deleteMany({
+      where: { contentDnaId: contentDNA.id },
+    });
+
+    await prisma.fact.createMany({
+      data: contentDNA.facts.map((fact) => ({
+        ...fact,
+        contentDnaId: contentDNA.id,
+      })),
+    });
+    await prisma.entity.createMany({
+      data: contentDNA.entities.map((entity) => ({
+        ...entity,
+        contentDnaId: contentDNA.id,
+      })),
+    });
+    await prisma.dnaEvent.createMany({
+      data: contentDNA.events.map((event) => ({
+        ...event,
+        contentDnaId: contentDNA.id,
+      })),
+    });
+    await prisma.claim.createMany({
+      data: contentDNA.claims.map((claim) => ({
+        ...claim,
+        contentDnaId: contentDNA.id,
+      })),
+    });
+    await prisma.recommendation.createMany({
+      data: contentDNA.recommendations.map((recommendation) => ({
+        ...recommendation,
+        contentDnaId: contentDNA.id,
+      })),
+    });
+    await prisma.uncertainty.createMany({
+      data: contentDNA.uncertainties.map((uncertainty) => ({
+        ...uncertainty,
+        contentDnaId: contentDNA.id,
+      })),
+    });
+
+    const saved = await prisma.contentDNA.findUnique({
+      where: { id: contentDNA.id },
+      include: contentDnaInclude,
+    });
+    if (!saved) throw new Error("Content DNA was not persisted.");
+    return toContentDNA(saved);
+  },
+
+  async linkContentDNA(
+    sourceId: string,
+    contentDnaId: string,
+  ): Promise<Source> {
+    const source = await getPrismaClient().source.update({
+      where: { id: sourceId },
+      data: { contentDnaId },
+    });
+    return toSource(source);
+  },
+
   async createSource(source: Source): Promise<Source> {
     const record = await getPrismaClient().source.create({
       data: {
